@@ -39,11 +39,16 @@
                 margin-bottom :15px;
                ">
 
-            <!-- The search bar. -->
-            <input type="search" id="searchbar" value="Stad...">
+            <!-- The search bar. Allows pressing enter to call the onclick function for the button-->
+            <input type="text" 
+                   id="searchbar" 
+                   placeholder="Kommun..." 
+                   onkeydown = "if (event.keyCode == 13)
+                                    document.getElementById('btnSearch').click()"
+            >
 
             <!-- The search button.-->
-            <input type="button" value="Sök" onclick="selectComponents()"/>
+            <input type="button" id = "btnSearch" value="Sök" onclick="selectComponents()"/>
     </div>
 
      <!-- ROW 1 -->
@@ -52,7 +57,8 @@
         <!-- Map -->
         <div class="col-md-4" id="map" 
              style= "
-                     border:2px solid white; background-color: #F0F0F0; 
+                     border:2px solid white; 
+                     background-color: #F0F0F0; 
                      height: 90vh; width: 35vw; 
                      margin-left: 40px;
                      border-radius: 10px;
@@ -66,7 +72,8 @@
         <!-- Barcharts -->
         <div class="col-md-7" 
              style="
-                    border:2px solid white; background-color: #F0F0F0; 
+                    border:2px solid white; 
+                    background-color: #F0F0F0; 
                     height: 90vh; width: 60vw;
                     margin-right: 40px;
                     border-radius: 10px

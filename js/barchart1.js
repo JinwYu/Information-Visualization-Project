@@ -1,4 +1,17 @@
-function barchart1(data, partyAbbreviations, partyColors){
+/**
+* Draws a barchart which shows the amount of 
+* votes every party received, sorted. Some of the
+* has been copied from https://bl.ocks.org/mbostock/1389927
+*
+* @param data = The data, read from the csv file.
+* @param regionArray = Array with all of the regions.
+* @param partyNamesMap = An array with all of the names of the political parties.
+* @param partyColors = The color for each party.
+*/  
+function barchart1(data, regionArray, partyNamesMap, partyColors){
+
+  var YEAR = "Year=2014";
+  var partiesAbbrevSortedArray = [];
 
   self.data = data;
 
@@ -28,97 +41,35 @@ function barchart1(data, partyAbbreviations, partyColors){
   // Taken from: http://bl.ocks.org/biovisualize/1016860
   var tooltip = d3.select("body")
                   .append("div")
-                  .style("position", "absolute");
+                  .style("position", "absolute");   
+  
+  // Get the nr of political parties.
+  var nrPoliticalParties = regionArray[0].values.length;
 
-   
-    var year = "Year=2014";
-    //console.log(data[0]);
-    //console.log(data[1]); // To debug webdings shit
+  // Set the scale domain.
+  x.domain([0, d3.max(data, function(d) { return d[YEAR]; })]);  
 
-    // Convert the percentages to numeric values.
-    data.forEach(function(d) { 
+  // Set the domain for the y-axis.
+  for(var idx = 0; idx < nrPoliticalParties; idx++){   
+      // Get the party's name.
+      var politicalPartyName = regionArray[0].values[idx].party;
 
-      if(d[year] > 0){
-        d[year] = +d[year];
-      }else{
-        // Get rid of junk data.
-        d[year] = 0;
-      }
-    });
+      // Use the abbreviations for each party.
+      partiesAbbrevSortedArray.push(partyNamesMap[politicalPartyName]);
 
-    
+      y.domain(partiesAbbrevSortedArray);
+  }
 
-    // Sort by the percentages.
-    data.sort(function(a, b) { return b[year] - a[year]; });  // TODO DUBBELKOLLA SÅ INTE SORTERAR ALLA KOMMUNERS PERCENTAGES PÅ EN GÅNG!!!!!!!!!!!!!!
+  // Draw an empty barchart for the first time.
+  draw("");
 
-    var citiesArray = [];
-    
-    // Collect all the entries with the same key (city)
-    // and get all of the information for each city.
-    citiesArray = d3.nest()
-                    .key(function(d){
-                      return d.region;
-                    })
-                    .entries(data);
-
-    citiesArray.keys = _.values(citiesArray);
-    //console.log(citiesArray[0].values[2]); // DENNA GER ETT OBJEKT, om ändrar 2an, så ändras parti.
-
-    // Set the scale domain.
-    x.domain([0, d3.max(data, function(d) { return d[year]; })]);  // TODO ändra så istället för data är det citiesArray
-    
-
-    // Get the nr of political parties.
-    var nrPoliticalParties = citiesArray[0].values.length;
-    var partiesAbbrevSortedArray = [];
-
-    // Set the domain for the y-axis.
-    for(var idx = 0; idx < nrPoliticalParties; idx++){        // TODO ÄNDRA DENNA
-        // Get the party's name.
-        var politicalPartyName = citiesArray[0].values[idx].party; // TODO ändra nollan för grundstaden
-
-        // Use the abbreviations for each party.
-        partiesAbbrevSortedArray.push(partyAbbreviations[politicalPartyName]);
-
-        y.domain(partiesAbbrevSortedArray);
-    }
-
-       var testRegion = "1762 Munkfors";
-
-    // Get the information from the chosen city.
-    // Will be used later when drawing the bar chart.
-    var chosenCityObject;
-    
-    for(var idx = 0; idx < citiesArray.length; idx++){
-
-      var tempCity = citiesArray[idx].key;
-
-      // Check if it's the chosen city and save it.
-      if(tempCity.includes(testRegion)) {
-        //console.log(citiesArray[idx]);
-        chosenCityObject = citiesArray[idx];
-        //console.log(chosenCityStats); // Object { key: "1762 Munkfors", values: Array[11] }
-      }
-    } 
-
-
-    //console.log(chosenCityObject.values[10]);
-
-
-    // Save the information about the percentage of the votes
-    // for each party, in the chosen city.
-    var chosenCityStats = chosenCityObject.values;
-
-    draw(chosenCityStats);
-
-    //console.log(chosenCityStats.values);  // Array [ Object, Object, Object, Object, Object, Object, Object, Object, Object, Object, 1 till… ]
-    //console.log(chosenCityStats.values[0].party); // Object { region: "1762 Munkfors", party: "Socialdemokraterna", Year=2014: 58.1 }
-    //console.log(chosenCityStats.values[1].party); // Object { region: "1762 Munkfors", party: "Sverigedemokraterna", Year=2014: 11.4 }
-
-  function draw(chosenCityStats){
+  /**
+  * Draws the barchart.
+  */  
+  function draw(chosenRegionStats){
     // All of the code below draws the bar chart.
     var bar = svg2.selectAll("g.bar")
-        .data(chosenCityStats)
+        .data(chosenRegionStats)
         .enter().append("g")
         .attr("class", "bar")
         // Transforms/translates downwards to each row, for each party.
@@ -130,52 +81,45 @@ function barchart1(data, partyAbbreviations, partyColors){
     // Draws the bars.
     bar.append("rect")
         .attr("width", function(d) { 
-          //console.log(d[year]); // varje voting procent.
-          return  x(d[year]);           
+          return  x(d[YEAR]);           
         })
         .attr("height", y.rangeBand())
         .style("fill", function(d,i) { 
-          //console.log(d.party);
           return partyColors[d.party]; 
         })
         .on("mouseover", function(d) {
             return tooltip.style("visibility", "visible");
         })
-        // Display the party's full name when the cursor is hovered above.
+        // Display the percentage when the cursor is hovered above.
         .on("mousemove", function(d) {
             return tooltip.style("top", (d3.event.pageY-10)+"px")
                           .style("left",(d3.event.pageX+10)+"px")
-                          .text( d.party )
+                          .text( d[YEAR] + "%" )
                           .style("font-weight", "bold")
-                          .style("font-size", "20px");
+                          .style("font-size", "25px");
         })
         .on("mouseout", function(d) {
             return tooltip.style("visibility", "hidden");  
         })
         .transition()
         .duration(750);
-    
-
 
     // Drawing the percentage at the end of the bars.
     bar.append("text")
         .attr("class", "value")
         .attr("x", function(d) { 
-          //console.log(x(d[year])); 
-          return x(d[year]); 
+          return x(d[YEAR]); 
         })
         .attr("y", y.rangeBand() / 2)
         .attr("dx", function(d) { 
-          //console.log(d[year]);
           return -3;
         })                                 
         .attr("dy", ".35em")
         .attr("text-anchor", "end")
         .text(function(d) { 
-
           // Don't display the value zero.
-          if(d[year] > 0){
-            return d[year] + "%";
+          if(d[YEAR] > 0){
+            return d[YEAR] + "%";
           }else{
             return "";
           }
@@ -203,24 +147,29 @@ function barchart1(data, partyAbbreviations, partyColors){
         .call(yAxis);
   }
 
-  function setDomains(citiesArrayIndex){
+  /**
+  * Overrides the domains for the barchart.
+  *
+  * @param regionArrayIndex = The index of the selected region, 
+  *                           for the array "regionArray".
+  */  
+  function overrideDomains(regionArrayIndex){
     
     // Clear the array from previously stored values.
     partiesAbbrevSortedArray.splice(0,partiesAbbrevSortedArray.length)
 
     // Set the domain for the y-axis.
-    for(var idx = 0; idx < nrPoliticalParties; idx++){        // TODO ÄNDRA DENNA
+    for(var idx = 0; idx < nrPoliticalParties; idx++){
         // Get the party's name.
-        var politicalPartyName = citiesArray[citiesArrayIndex].values[idx].party;
+        var politicalPartyName = regionArray[regionArrayIndex].values[idx].party;
 
         // Use the abbreviations for each party.
-        partiesAbbrevSortedArray.push(partyAbbreviations[politicalPartyName]);
+        partiesAbbrevSortedArray.push(partyNamesMap[politicalPartyName]);
 
         y.domain(partiesAbbrevSortedArray);
     }
-    //y.domain(partiesAbbrevSortedArray.map(function(d){ console.log(d); return d; }));
     
-    // Clear the domain.
+    // Clear the y-domain.
     svg2.select(".y.axis").remove();
 
     // Change the y-axis.
@@ -228,23 +177,28 @@ function barchart1(data, partyAbbreviations, partyColors){
         .call(yAxis);
   }
         
-
+  /**
+  * Draws the barchart for the selected region. 
+  *
+  * @param selectedRegionString = A string that contains the selected region's name.
+  */  
   this.showSelectedRegionStats = function(selectedRegionString){
 
     // Get the information from the chosen region.
     // Will be used later when drawing the bar chart.
-    var chosenCityObject;
-    var citiesArrayIndex = 0;
+    var chosenRegionObject;
+    var regionArrayIndex = 0;
 
-    for(idx = 0; idx < citiesArray.length; idx++){ // in citiesArray){
+    // Go through every region.
+    for(idx = 0; idx < regionArray.length; idx++){
 
-      var tempCity = citiesArray[idx].key;
+      var tempRegion = regionArray[idx].key;
 
-      // Check if it's the chosen city and save it.
-      if(tempCity.includes(selectedRegionString)) {
+      // Check if it's the selected region and save it.
+      if(tempRegion.includes(selectedRegionString)) {
         
-        chosenCityObject = citiesArray[idx];
-        citiesArrayIndex = idx;
+        chosenRegionObject = regionArray[idx];
+        regionArrayIndex = idx;
       }
     } 
 
@@ -252,14 +206,14 @@ function barchart1(data, partyAbbreviations, partyColors){
     svg2.selectAll("g.bar").remove();
 
     // Save the information about the percentage of the votes
-    // for each party, in the chosen city.
-    var chosenCityStats = chosenCityObject.values;
+    // for each party, in the chosen region.
+    var chosenRegionStats = chosenRegionObject.values;
 
     // Set the new sorted domains for the axes.
-    setDomains(citiesArrayIndex);
+    overrideDomains(regionArrayIndex);
 
-    // Draw the chosen city's stats.
-    draw(chosenCityStats);
+    // Draw the chosen region's stats.
+    draw(chosenRegionStats);
   }
 
 }
